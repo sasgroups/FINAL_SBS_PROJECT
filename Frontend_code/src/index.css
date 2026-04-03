@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Prevent zoom on focus for input, select, and textarea (iOS Safari) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  font-size: 16px; /* 16px is the minimum to avoid auto-zoom on focus */
+}
+
+/* Disable text selection highlighting (optional) */
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; /* Be careful: this disables text selection entirely */
+}
+
+/* If you want to keep text selection but disable zoom, you can also use: */
+body {
+  touch-action: pan-y pinch-zoom; /* Allows vertical scroll but disables pinch zoom? Actually this might still allow zoom. */
+}
+
+@font-face {
+  font-family: 'DS-Digital';
+  src: url('../public/fonts/DS-DIGI.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.font-dsdigital-dark {
+  font-family: 'DS-Digital', monospace !important;
+  letter-spacing: 0.15em;
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5) !important;
+}
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+  
+  /* Smooth transitions */
+  * {
+    @apply transition-all duration-200;
+  }
+  
+  /* Card hover effects */
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-[1.02];
+  }
+  
+  /* Glow effects */
+  .glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  
+  /* Background patterns */
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}

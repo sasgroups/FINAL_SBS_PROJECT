@@ -1,0 +1,57 @@
+.App {
+  text-align: center;
+}
+/* Prevent zoom on focus for input, select, and textarea (iOS Safari) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  font-size: 16px; /* 16px is the minimum to avoid auto-zoom on focus */
+}
+
+/* Disable text selection highlighting (optional) */
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; /* Be careful: this disables text selection entirely */
+}
+
+/* If you want to keep text selection but disable zoom, you can also use: */
+body {
+  touch-action: pan-y pinch-zoom; /* Allows vertical scroll but disables pinch zoom? Actually this might still allow zoom. */
+}
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
