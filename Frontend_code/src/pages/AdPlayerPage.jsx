@@ -1,19 +1,40 @@
 // WelcomeAdPage.js - With Polling for Real-time Updates
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
 const API_URL = process.env.REACT_APP_API_URL;
+
+// Carousel data moved outside component to avoid re-creations
+const carouselData = [
+  {
+    title: "Welcome to Smart Baggage Check",
+    description: "Fast, accurate weight and dimension measurement for all airlines",
+  },
+  {
+    title: "Touch Screen to Begin",
+    description: "Place your baggage on the scale and follow the instructions",
+  },
+  {
+    title: "Multiple Airlines Supported",
+    description: "Real-time baggage limit checking for over 50 airlines worldwide",
+  },
+];
 
 export default function WelcomeAdPage() {
   const navigate = useNavigate();
-  const [ads, setAds] = useState([]);
+  
+  // Initialize with cached ads for instant LCP render
+  const [ads, setAds] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cachedAds");
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [adIndex, setAdIndex] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(() => !localStorage.getItem("cachedAds"));
   const [KIOSK_ID, setKioskId] = useState(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const videoRef = useRef(null);
   const imageRef = useRef(null);
   
@@ -21,6 +42,14 @@ export default function WelcomeAdPage() {
   const pollIntervalRef = useRef(null);
 
   useEffect(() => {
+    // Preconnect to API to speed up network requests
+    if (API_URL) {
+      const link = document.createElement("link");
+      link.rel = "preconnect";
+      link.href = API_URL;
+      document.head.appendChild(link);
+    }
+
     const token = localStorage.getItem("kioskToken");
     const id = localStorage.getItem("kiosk_id");
 
@@ -38,22 +67,6 @@ export default function WelcomeAdPage() {
       }
     };
   }, [navigate]);
-
-  // Carousel data
-  const carouselData = [
-    {
-      title: "Welcome to Smart Baggage Check",
-      description: "Fast, accurate weight and dimension measurement for all airlines",
-    },
-    {
-      title: "Touch Screen to Begin",
-      description: "Place your baggage on the scale and follow the instructions",
-    },
-    {
-      title: "Multiple Airlines Supported",
-      description: "Real-time baggage limit checking for over 50 airlines worldwide",
-    },
-  ];
 
   // Function to get ad source with fallback
   const getAdSource = useCallback((ad) => {
@@ -90,33 +103,34 @@ export default function WelcomeAdPage() {
 
   // Function to load ads with polling - SIMPLIFIED VERSION
   const loadAds = async (showLoading = true) => {
-    if (!KIOSK_ID) {
-      console.log("Waiting for kiosk ID...");
-      return;
-    }
+    if (!KIOSK_ID) return;
     
     try {
       if (showLoading) setIsLoading(true);
       
-      const response = await axios.get(`${API_URL}/api/ads/kiosk/${KIOSK_ID}`, {
-        params: {
-          t: Date.now(), // Cache busting parameter
-        },
-        timeout: 5000,
+      const cacheBust = Math.floor(Date.now() / 60000); // Cache bust every minute
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 5000);
+      
+      const response = await fetch(`${API_URL}/api/ads/kiosk/${KIOSK_ID}?t=${cacheBust}`, {
+        signal: abortController.signal
       });
+      clearTimeout(timeoutId);
       
-      console.log("API Response:", response.data);
+      if (!response.ok) throw new Error("Network response was not ok");
       
-      if (response.data && response.data.success === true) {
-        const adsArray = response.data.ads || [];
-        console.log(`Received ${adsArray.length} ads`);
+      const data = await response.json();
+      
+      if (data && data.success === true) {
+        const adsArray = data.ads || [];
         
         if (adsArray.length > 0) {
           setAds(prevAds => {
             const hasChanged = compareAds(prevAds, adsArray);
             if (hasChanged) {
-              console.log("Ads changed, updating...");
-              setLastUpdateTime(new Date().toLocaleTimeString());
+              try {
+                localStorage.setItem("cachedAds", JSON.stringify(adsArray));
+              } catch (e) {}
               // Reset to first ad when ads change
               setAdIndex(0);
               return adsArray;
@@ -124,24 +138,20 @@ export default function WelcomeAdPage() {
             return prevAds;
           });
         } else {
-          console.log("No ads found, using fallback");
           // Fallback to default ad
-          setAds([{
+          const fallback = [{
             id: 0,
             filename: "default-ad.png",
             type: "image",
             title: "Welcome to Baggage Check",
             is_default: true,
             kiosk_id: null
-          }]);
+          }];
+          setAds(fallback);
+          try { localStorage.setItem("cachedAds", JSON.stringify(fallback)); } catch (e) {}
         }
-      } else {
-        console.error("Invalid API response format:", response.data);
       }
     } catch (error) {
-      console.error("Error loading ads:", error.message);
-      // Don't set error state to avoid showing error message
-      
       // Only set fallback if we have no ads at all
       if (ads.length === 0) {
         setAds([{
@@ -154,10 +164,7 @@ export default function WelcomeAdPage() {
         }]);
       }
     } finally {
-      if (showLoading) {
-        setIsLoading(false);
-        console.log("Loading finished");
-      }
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -165,25 +172,32 @@ export default function WelcomeAdPage() {
   useEffect(() => {
     if (!KIOSK_ID) return;
     
-    console.log("Starting ad loading for kiosk:", KIOSK_ID);
-    
     // Initial load
     loadAds(true);
     
     // Start polling every 10 seconds for new ads
     pollIntervalRef.current = setInterval(() => {
-      console.log("Polling for new ads...");
       loadAds(false); // Don't show loading indicator for polls
     }, 10000); // Poll every 10 seconds
     
     // Cleanup
     return () => {
-      console.log("Cleaning up polling interval");
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
     };
   }, [KIOSK_ID]);
+
+  // Preload next image to ensure smooth transitions and better caching
+  useEffect(() => {
+    if (ads.length > 1) {
+      const nextAd = ads[(adIndex + 1) % ads.length];
+      if (nextAd && nextAd.type === "image") {
+        const img = new Image();
+        img.src = getAdSource(nextAd);
+      }
+    }
+  }, [adIndex, ads, getAdSource]);
 
   // Carousel auto-slide
   useEffect(() => {
@@ -266,7 +280,6 @@ export default function WelcomeAdPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLoading) {
-        console.log("Loading timeout - showing default content");
         setIsLoading(false);
         if (ads.length === 0) {
           setAds([{
@@ -367,8 +380,9 @@ export default function WelcomeAdPage() {
                 className="w-full h-full object-cover"
                 alt={currentAd.title || "Advertisement"}
                 loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 onError={handleImageError}
-                onLoad={() => console.log(`Image loaded: ${currentAd.filename || 'default'}`)}
               />
             </div>
           ) : isVideo ? (
@@ -383,9 +397,6 @@ export default function WelcomeAdPage() {
                 className="w-full h-full object-cover"
                 onEnded={handleVideoEnded}
                 onError={handleVideoError}
-                onCanPlayThrough={() => {
-                  console.log(`Video ready: ${currentAd.filename || 'default'}`);
-                }}
                 preload="auto"
                 disablePictureInPicture
                 disableRemotePlayback

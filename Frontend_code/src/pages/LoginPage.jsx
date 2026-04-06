@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, X } from "lucide-react";
-import AutoKioskSender from "../components/AutoKioskSender";
 import VirtualKeyboard from "../components/VirtualKeyboard";
 
 const API_URL = process.env.REACT_APP_API_URL ;
