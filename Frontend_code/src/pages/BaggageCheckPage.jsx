@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Timmer from "../components/Timmer";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import AdBanner from "./AdBanner";
 import Language from "../components/Language";
@@ -25,11 +24,16 @@ export default function BaggageCheckPage() {
   const [objectDetected, setObjectDetected] = useState(false);
   const [noBagTimeout, setNoBagTimeout] = useState(false);
   const [weightStable, setWeightStable] = useState(false);
-  const [isLoadingLimits, setIsLoadingLimits] = useState(true);
+  const { airline = "", flightType = "", origin, destination } = baggageData;
+  const [limits, setLimits] = useState(() => {
+    if (baggageData?.maxWeight && baggageData?.maxVolume) {
+      return { maxWeight: baggageData.maxWeight, maxVolume: baggageData.maxVolume };
+    }
+    return { maxWeight: null, maxVolume: null };
+  });
+  const [isLoadingLimits, setIsLoadingLimits] = useState(() => !(baggageData?.maxWeight && baggageData?.maxVolume));
 
   const { t } = useTranslation();
-  const [limits, setLimits] = useState({ maxWeight: null, maxVolume: null });
-  const { airline = "", flightType = "", origin, destination } = baggageData;
 
   const isLoadingVolume = currentWeight > 0.1 && (!objectDetected || volume === 0);
   const isReady = currentWeight > 0.1 && objectDetected && volume > 0;
@@ -76,12 +80,17 @@ export default function BaggageCheckPage() {
     console.log("📦 Sending baggage data:", payload);
 
     try {
-      const res = await axios.post(`${API_URL}/api/baggage/save-check`, payload);
-      console.log("✅ Backend response:", res.data);
+      const res = await fetch(`${API_URL}/api/baggage/save-check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to save check");
+      const data = await res.json();
+      console.log("✅ Backend response:", data);
       navigate("/ad_player");
     } catch (err) {
       console.error("❌ Failed to save baggage check:", err.message);
-      if (err.response) console.error("Server error:", err.response.data);
       alert("❌ Failed to save baggage check!");
     }
   };
@@ -92,10 +101,16 @@ export default function BaggageCheckPage() {
     let previousWeight = 0;
 
     const fetchWeight = async () => {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 900); // Prevent overlapping 1s intervals
       try {
-        const res = await axios.get(`${API_URL2}/api/weight`);
-        if (res.data?.weight !== undefined) {
-          const newWeight = res.data.weight;
+        const res = await fetch(`${API_URL2}/api/weight`, { signal: abortController.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error("Fetch failed");
+        
+        const data = await res.json();
+        if (data?.weight !== undefined) {
+          const newWeight = data.weight;
           setCurrentWeight(newWeight);
 
           if (Math.abs(newWeight - previousWeight) < 0.1) {
@@ -110,7 +125,7 @@ export default function BaggageCheckPage() {
           previousWeight = newWeight;
         }
       } catch (err) {
-        console.error("❌ Failed to fetch weight:", err.message);
+        // Silent catch unless relevant, prevents log spamming
       }
     };
 
@@ -124,16 +139,22 @@ export default function BaggageCheckPage() {
     let timeoutId;
 
     const fetchObject = async () => {
+      const abortController = new AbortController();
+      const timeoutIdFetch = setTimeout(() => abortController.abort(), 4500);
       try {
-        const res = await axios.get(`${API_URL3}/api/detection`);
-        if (res.data?.detected && weightStable && currentWeight > 0.1) {
+        const res = await fetch(`${API_URL3}/api/detection`, { signal: abortController.signal });
+        clearTimeout(timeoutIdFetch);
+        if (!res.ok) throw new Error("Fetch failed");
+        const data = await res.json();
+        
+        if (data?.detected && weightStable && currentWeight > 0.1) {
           clearTimeout(timeoutId);
           setDimensions({
-            height: res.data.height_cm,
-            width: res.data.width_cm,
-            length: res.data.length_cm,
+            height: data.height_cm,
+            width: data.width_cm,
+            length: data.length_cm,
           });
-          const totalLinearCm = res.data.height_cm + res.data.width_cm + res.data.length_cm;
+          const totalLinearCm = data.height_cm + data.width_cm + data.length_cm;
           setVolume(Math.round(totalLinearCm));
           setObjectDetected(true);
           setNoBagTimeout(false);
@@ -145,7 +166,7 @@ export default function BaggageCheckPage() {
           timeoutId = setTimeout(() => setNoBagTimeout(true), 1500);
         }
       } catch (err) {
-        console.error("❌ Failed to fetch object data:", err.message);
+        // Silent catch
       }
     };
 
@@ -160,40 +181,32 @@ export default function BaggageCheckPage() {
   // Fetch airline limits with loading state
   useEffect(() => {
     const fetchLimits = async () => {
+      // Return early since limits are already seeded synchronously from route state.
+      if (baggageData.maxWeight && baggageData.maxVolume) {
+        return;
+      }
+      
       setIsLoadingLimits(true);
       try {
-        if (baggageData.maxWeight && baggageData.maxVolume) {
-          setLimits({
-            maxWeight: baggageData.maxWeight,
-            maxVolume: baggageData.maxVolume,
-          });
-          setIsLoadingLimits(false);
-          return;
-        }
-
         if (airline && flightType) {
-          const res = await axios.get(`${API_URL}/api/flights`);
-          const match = res.data.find((f) => f.airline === airline);
+          const cacheBust = Math.floor(Date.now() / 300000); // 5 min cache
+          const res = await fetch(`${API_URL}/api/flights?t=${cacheBust}`);
+          if (!res.ok) throw new Error("Failed to fetch");
+          const data = await res.json();
+          
+          const match = data.find((f) => f.airline === airline);
           if (match) {
             setLimits({
-              maxWeight:
-                flightType === "Domestic"
-                  ? match.max_weight_domestic
-                  : match.max_weight_international,
-              maxVolume:
-                flightType === "Domestic"
-                  ? match.max_volume_domestic
-                  : match.max_volume_international,
+              maxWeight: flightType === "Domestic" ? match.max_weight_domestic : match.max_weight_international,
+              maxVolume: flightType === "Domestic" ? match.max_volume_domestic : match.max_volume_international,
             });
           } else {
-            console.warn("No matching airline found");
             setLimits({ maxWeight: null, maxVolume: null });
           }
         } else {
           setLimits({ maxWeight: null, maxVolume: null });
         }
       } catch (err) {
-        console.error("❌ Failed to fetch limits:", err.message);
         setLimits({ maxWeight: null, maxVolume: null });
       } finally {
         setIsLoadingLimits(false);
