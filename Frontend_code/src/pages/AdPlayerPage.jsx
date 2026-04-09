@@ -40,6 +40,7 @@ export default function WelcomeAdPage() {
   
   // Refs for polling
   const pollIntervalRef = useRef(null);
+  const adVersionRef = useRef(null);
 
   useEffect(() => {
     // Preconnect to API to speed up network requests
@@ -175,10 +176,39 @@ export default function WelcomeAdPage() {
     // Initial load
     loadAds(true);
     
-    // Start polling every 10 seconds for new ads
-    pollIntervalRef.current = setInterval(() => {
-      loadAds(false); // Don't show loading indicator for polls
-    }, 10000); // Poll every 10 seconds
+    const checkUpdates = async () => {
+      try {
+        const cacheBust = new Date().getTime();
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 5000);
+        
+        const response = await fetch(`${API_URL}/api/ads/kiosk/${KIOSK_ID}/check?t=${cacheBust}`, {
+          signal: abortController.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.success) {
+            const current = adVersionRef.current;
+            // If version changed, reload ads
+            if (current && (current.count !== data.count || current.max_id !== data.max_id)) {
+              loadAds(false);
+            }
+            adVersionRef.current = { count: data.count, max_id: data.max_id };
+          }
+        }
+      } catch (err) {
+        // silent fail for background checking
+      }
+    };
+    
+    // Do an initial check to set the baseline version soon after load
+    setTimeout(checkUpdates, 2000);
+    
+    // Start polling every 10 seconds for new ads using transparent lightweight check
+    pollIntervalRef.current = setInterval(checkUpdates, 10000);
     
     // Cleanup
     return () => {
