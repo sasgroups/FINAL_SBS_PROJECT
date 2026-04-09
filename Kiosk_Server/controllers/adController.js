@@ -78,6 +78,36 @@ exports.getAdsForKiosk = async (req, res) => {
   }
 };
 
+// ✅ Check if ad updates exist for a kiosk (lightweight polling)
+exports.checkAdUpdates = async (req, res) => {
+  try {
+    const { kioskId } = req.params;
+    
+    if (!kioskId) {
+      return res.status(400).json({ error: 'Kiosk ID is required' });
+    }
+
+    const [result] = await db.execute(`
+      SELECT 
+        COUNT(*) as count, 
+        MAX(id) as max_id
+      FROM ads a
+      WHERE (a.kiosk_id IS NULL OR a.kiosk_id = ?)
+    `, [kioskId]);
+
+    const info = result[0] || { count: 0, max_id: 0 };
+    
+    res.json({
+      success: true,
+      count: info.count || 0,
+      max_id: info.max_id || 0
+    });
+  } catch (err) {
+    console.error('Error checking ad updates:', err);
+    res.status(500).json({ error: 'Error checking updates' });
+  }
+};
+
 // ✅ Get ads for sync (background synchronization)
 exports.getAdsForSync = async (req, res) => {
   try {
