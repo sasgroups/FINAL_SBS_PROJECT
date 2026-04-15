@@ -12,6 +12,9 @@ router.get('/kiosk/:kioskId', adController.getAdsForKiosk);
 // Check if ads have been updated for a specific kiosk
 router.get('/kiosk/:kioskId/check', adController.checkAdUpdates);
 
+// Listen to Real-Time SSE Stream for a Kiosk's ad changes
+router.get('/kiosk/:kioskId/updates-stream', adController.adUpdatesStream);
+
 // Get ads for sync with metadata
 router.get('/sync/:kioskId', adController.getAdsForSync);
 
