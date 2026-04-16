@@ -1,6 +1,6 @@
-// WelcomeAdPage.js - With Polling for Real-time Updates
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { cacheVideo, getCachedVideo, cleanupOrphanedVideos } from "../utils/videoCache";
 const API_URL = process.env.REACT_APP_API_URL;
 
 // Carousel data moved outside component to avoid re-creations
@@ -37,9 +37,14 @@ export default function WelcomeAdPage() {
   const [KIOSK_ID, setKioskId] = useState(null);
   const videoRef = useRef(null);
   const imageRef = useRef(null);
+  const downloadingSet = useRef(new Set());
+  
+  // Local active URL for caching (either remote HTTP or local Blob URL)
+  const [activeAdUrl, setActiveAdUrl] = useState("/default-ad.png");
   
   // Refs for polling
   const pollIntervalRef = useRef(null);
+  const adVersionRef = useRef(null);
 
   useEffect(() => {
     // Preconnect to API to speed up network requests
@@ -108,7 +113,7 @@ export default function WelcomeAdPage() {
     try {
       if (showLoading) setIsLoading(true);
       
-      const cacheBust = Math.floor(Date.now() / 60000); // Cache bust every minute
+      const cacheBust = new Date().getTime(); // Cache bust down to the millisecond
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), 5000);
       
@@ -127,6 +132,7 @@ export default function WelcomeAdPage() {
         if (adsArray.length > 0) {
           setAds(prevAds => {
             const hasChanged = compareAds(prevAds, adsArray);
+            console.log("Ads fetch complete. Changed?", hasChanged);
             if (hasChanged) {
               try {
                 localStorage.setItem("cachedAds", JSON.stringify(adsArray));
@@ -168,23 +174,38 @@ export default function WelcomeAdPage() {
     }
   };
 
-  // Initial load and setup polling - SIMPLIFIED
+  // Initial load and setup Server-Sent Events (SSE) Stream
   useEffect(() => {
     if (!KIOSK_ID) return;
     
     // Initial load
     loadAds(true);
     
-    // Start polling every 10 seconds for new ads
-    pollIntervalRef.current = setInterval(() => {
-      loadAds(false); // Don't show loading indicator for polls
-    }, 10000); // Poll every 10 seconds
+    // EventSource (SSE) handles automatic reconnection inherently perfectly over standard HTTP
+    const eventSource = new EventSource(`${API_URL}/api/ads/kiosk/${KIOSK_ID}/updates-stream`);
     
+    eventSource.onmessage = (event) => {
+      try {
+        if (!event.data) return;
+        const data = JSON.parse(event.data);
+        if (data.event === 'ads_updated') {
+          console.log("SSE push received: Ads updated! Fetching new ads instantly...");
+          loadAds(false);
+        } else if (data.event === 'connected') {
+          console.log("Connected to Ad Updates SSE stream!");
+        }
+      } catch (err) {
+        console.error("Error parsing SSE data", err);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.log("SSE Stream error or reconnecting...");
+    };
+
     // Cleanup
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
+      eventSource.close();
     };
   }, [KIOSK_ID]);
 
@@ -198,6 +219,83 @@ export default function WelcomeAdPage() {
       }
     }
   }, [adIndex, ads, getAdSource]);
+
+  // Background caching & orphaned clearance
+  useEffect(() => {
+    if (!ads || ads.length === 0) return;
+
+    const autoDownloadVideos = async () => {
+      const activeVideoUrls = ads
+        .filter(ad => ad?.type === "video")
+        .map(ad => getAdSource(ad))
+        .filter(url => url && url !== "/default-ad.png");
+
+      if (activeVideoUrls.length > 0) {
+        await cleanupOrphanedVideos(activeVideoUrls);
+
+        for (const url of activeVideoUrls) {
+          if (!downloadingSet.current.has(url)) {
+            downloadingSet.current.add(url);
+            getCachedVideo(url).then(cached => {
+              if (!cached) {
+                console.log(`⬇️ Background downloading video: ${url}`);
+                fetch(url)
+                  .then(res => {
+                    if (!res.ok) throw new Error("Network not ok");
+                    return res.blob();
+                  })
+                  .then(blob => cacheVideo(url, blob))
+                  .catch(err => console.error(`Failed to cache ${url}`, err))
+                  .finally(() => downloadingSet.current.delete(url));
+              } else {
+                downloadingSet.current.delete(url);
+              }
+            });
+          }
+        }
+      }
+    };
+    autoDownloadVideos();
+  }, [ads, getAdSource]);
+
+  // Cache-First Playback Resolver
+  useEffect(() => {
+    let objectUrl = null;
+    let isActive = true;
+
+    const resolveAdUrl = async () => {
+      const currentAd = ads[adIndex];
+      if (!currentAd) {
+        if (isActive) setActiveAdUrl("/default-ad.png");
+        return;
+      }
+
+      const remoteUrl = getAdSource(currentAd);
+
+      if (currentAd.type === "video" && remoteUrl !== "/default-ad.png") {
+        const cachedBlob = await getCachedVideo(remoteUrl);
+        if (cachedBlob && isActive) {
+          objectUrl = URL.createObjectURL(cachedBlob);
+          console.log(`▶️ Playing from local cache: ${remoteUrl}`);
+          setActiveAdUrl(objectUrl);
+        } else if (isActive) {
+          console.log(`🌐 Playing from remote (not cached yet): ${remoteUrl}`);
+          setActiveAdUrl(remoteUrl);
+        }
+      } else {
+        if (isActive) setActiveAdUrl(remoteUrl);
+      }
+    };
+
+    resolveAdUrl();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [ads, adIndex, getAdSource]);
 
   // Carousel auto-slide
   useEffect(() => {
@@ -270,8 +368,6 @@ export default function WelcomeAdPage() {
     is_default: true
   };
 
-  // Get ad source safely
-  const adSource = getAdSource(currentAd);
   const isImage = currentAd.type === "image";
   const isVideo = currentAd.type === "video";
   const hasAds = ads.length > 0;
@@ -375,8 +471,9 @@ export default function WelcomeAdPage() {
           isImage ? (
             <div className="w-full h-full flex items-center justify-center">
               <img
+                key={activeAdUrl}
                 ref={imageRef}
-                src={adSource}
+                src={activeAdUrl}
                 className="w-full h-full object-cover"
                 alt={currentAd.title || "Advertisement"}
                 loading="eager"
@@ -388,8 +485,9 @@ export default function WelcomeAdPage() {
           ) : isVideo ? (
             <div className="w-full h-full">
               <video
+                key={activeAdUrl}
                 ref={videoRef}
-                src={adSource}
+                src={activeAdUrl}
                 autoPlay
                 loop={isVideo && ads.length === 1}
                 muted

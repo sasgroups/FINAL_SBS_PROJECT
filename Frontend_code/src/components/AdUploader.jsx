@@ -97,7 +97,8 @@ export default function AdUploader({ onUpload }) {
 
     } catch (err) {
       console.error("Upload error:", err);
-      alert(err.response?.data || "❌ Upload failed. Please try again.");
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || (typeof err.response?.data === 'string' ? err.response?.data : "❌ Upload failed. Please try again.");
+      alert(errorMessage);
       setUploadProgress(0);
     } finally {
       setIsUploading(false);

@@ -25,6 +25,9 @@ app.use(express.json());
 app.use(fileUpload());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Share Socket.IO instance with Express app routes
+app.set("io", io);
+
 // In-memory data store for kiosk statuses
 const kiosks = new Map();
 
