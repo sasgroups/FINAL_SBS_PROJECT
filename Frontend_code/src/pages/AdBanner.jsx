@@ -165,6 +165,10 @@ export default function AdBanner() {
             }, duration);
           })
           .catch((e) => {
+            if (e.name === 'AbortError') {
+              // Ignore AbortError: caused when component unmounts or src changes rapidly
+              return;
+            }
             console.error("Video play failed:", e);
             // If video fails, skip to next ad
             setCurrentAdIndex(prev => (prev + 1) % ads.length);
