@@ -34,11 +34,11 @@ function App() {
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          userSelect: 'none',          // Prevent text selection
+          userSelect: 'none',        
           WebkitUserSelect: 'none',
           MozUserSelect: 'none',
-          touchAction: 'none',         // Disable pinch‑zoom and panning
-          WebkitUserDrag: 'none',      // Prevent dragging images/elements
+          touchAction: 'none',       
+          WebkitUserDrag: 'none',     
         }}
       >
         <Suspense fallback={

@@ -4,6 +4,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 const db = require('../db');
 
+// Keep track of connected SSE clients specifically for instantaneous ad pushes
+const sseClients = new Set();
+
 // ✅ Get ads for specific kiosk (global + kiosk-specific)
 exports.getAdsForKiosk = async (req, res) => {
   try {
@@ -76,6 +79,69 @@ exports.getAdsForKiosk = async (req, res) => {
     console.error('Error fetching kiosk ads:', err);
     res.status(500).json({ error: 'Error fetching advertisements' });
   }
+};
+
+// ✅ Check if ad updates exist for a kiosk (lightweight polling)
+exports.checkAdUpdates = async (req, res) => {
+  try {
+    const { kioskId } = req.params;
+    
+    if (!kioskId) {
+      return res.status(400).json({ error: 'Kiosk ID is required' });
+    }
+
+    const [result] = await db.execute(`
+      SELECT 
+        COUNT(*) as count, 
+        MAX(id) as max_id
+      FROM ads a
+      WHERE (a.kiosk_id IS NULL OR a.kiosk_id = ?)
+    `, [kioskId]);
+
+    const info = result[0] || { count: 0, max_id: 0 };
+    
+    res.json({
+      success: true,
+      count: info.count || 0,
+      max_id: info.max_id || 0
+    });
+  } catch (err) {
+    console.error('Error checking ad updates:', err);
+    res.status(500).json({ error: 'Error checking updates' });
+  }
+};
+
+// ✅ Server-Sent Events (SSE) for Real-Time Ad Updates without polling
+exports.adUpdatesStream = (req, res) => {
+  const { kioskId } = req.params;
+  
+  // Standard SSE Headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  
+  // Send initial acknowledge heartbeat
+  res.write(`data: ${JSON.stringify({ event: 'connected', kioskId })}\n\n`);
+  
+  const client = { id: Date.now() + Math.random(), kioskId, res };
+  sseClients.add(client);
+  
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    if (client.res.writable) {
+      client.res.write(`:\n\n`);
+    } else {
+      clearInterval(heartbeat);
+    }
+  }, 30000);
+  
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(client);
+  });
 };
 
 // ✅ Get ads for sync (background synchronization)
@@ -177,6 +243,24 @@ exports.uploadAd = async (req, res) => {
     // Parse kiosk_id (null for global ads)
     const parsedKioskId = kiosk_id && kiosk_id !== '' ? parseInt(kiosk_id) : null;
 
+    // Prevent duplicate ads based on identical file hash and target destination
+    let duplicateQuery = 'SELECT id FROM ads WHERE file_hash = ? AND ';
+    let dupParams = [file_hash];
+    
+    if (parsedKioskId === null) {
+      duplicateQuery += 'kiosk_id IS NULL';
+    } else {
+      duplicateQuery += 'kiosk_id = ?';
+      dupParams.push(parsedKioskId);
+    }
+    
+    const [duplicate] = await db.execute(duplicateQuery, dupParams);
+    
+    if (duplicate.length > 0) {
+      fs.unlinkSync(uploadPath); // Clean up the redundant file
+      return res.status(409).json({ error: 'ALREADY AD EXISTS: This specific advertisement media is already uploaded for this target.' });
+    }
+
     // Check if kiosk exists (if kiosk-specific ad)
     if (parsedKioskId) {
       const [kiosk] = await db.execute('SELECT id FROM kiosks WHERE id = ?', [parsedKioskId]);
@@ -193,6 +277,14 @@ exports.uploadAd = async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [uniqueFilename, type, parsedKioskId, file_hash, file_size]
     );
+
+    // Notify connected SSE clients directly without dependencies
+    sseClients.forEach(client => {
+        // If it's a global ad or matching kiosk, send the refresh command
+        if (!parsedKioskId || client.kioskId === String(parsedKioskId)) {
+            client.res.write(`data: ${JSON.stringify({ event: 'ads_updated' })}\n\n`);
+        }
+    });
 
     res.json({
       success: true,
@@ -329,6 +421,14 @@ exports.deleteAd = async (req, res) => {
       fs.unlinkSync(filePath);
     }
     
+    // Notify connected SSE clients directly without dependencies
+    sseClients.forEach(client => {
+      // If it's a global ad or matching kiosk, send the refresh command
+      if (!ad[0].kiosk_id || client.kioskId === String(ad[0].kiosk_id)) {
+          client.res.write(`data: ${JSON.stringify({ event: 'ads_updated' })}\n\n`);
+      }
+    });
+
     res.json({
       success: true,
       message: 'Ad deleted successfully',
