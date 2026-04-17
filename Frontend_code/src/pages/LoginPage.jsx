@@ -107,7 +107,7 @@ export default function LoginPage() {
         {/* <AutoKioskSender /> */}
 
         <h1 className="text-3xl font-bold text-center text-slate-800 mb-6">
-          LOGIN
+          Login
         </h1>
 
         {/* --- Tabs --- */}
