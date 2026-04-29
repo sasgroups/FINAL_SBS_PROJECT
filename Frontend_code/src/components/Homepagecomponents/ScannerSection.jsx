@@ -6,206 +6,115 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
 
   return (
     <div
-      className="rounded-2xl p-1.5"
+      className="rounded-2xl p-0.5 relative group overflow-hidden h-full border-8 solid border-slate-800 dark:border-gray-800"
       style={{
-        background: "linear-gradient(to bottom right, var(--theme-cardBg), var(--theme-border))",
+        backgroundColor: "var(--theme-cardBg)",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
       }}
     >
       <div
-        className="rounded-xl p-6 h-full backdrop-blur-sm"
+        className="relative rounded-[14px] p-6 h-full flex flex-col items-center text-center w-full"
         style={{
           backgroundColor: "var(--theme-cardBg)",
-          border: "1px solid var(--theme-border)",
         }}
       >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+        {/* Header */}
+        <div className="flex flex-col items-center justify-center mb-8 w-full">
+          <div className="flex w-full items-center justify-between">
+            <div className="flex items-center gap-4">
               <div
-                className="p-2.5 rounded-lg"
-                style={{
-                  backgroundColor: "var(--theme-cardBg)",
-                  border: "1px solid var(--theme-border)",
-                }}
+                className="p-3 rounded-2xl shadow-sm flex items-center justify-center relative"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
               >
-                <svg className="w-5 h-5" style={{ color: "var(--theme-font)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    d="M4 7V5a1 1 0 011-1h2M4 17v2a1 1 0 001 1h2M20 7V5a1 1 0 00-1-1h-2M20 17v2a1 1 0 01-1 1h-2M7 12h10M7 16h6M7 8h4" />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-xl font-bold" style={{ color: "var(--theme-font)" }}>
+              <div className="text-left mt-2">
+                <h2 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-1 drop-shadow-sm">
                   {t("scanBoardingPass")}
                 </h2>
-                <p className="text-sm mt-1" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
-                  {t("fastestMethod")} • {t("seconds", { seconds: 30 })} • {t("recommended")}
+                <p className="text-sm font-medium text-white opacity-80">
+                  {t("fastestMethod")} • {t("seconds", { seconds: 30 })}
                 </p>
               </div>
             </div>
-          </div>
-
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-            style={{
-              backgroundColor: "var(--theme-cardBg)",
-              border: "1px solid var(--theme-border)",
-            }}
-          >
             <div
-              className={`w-2 h-2 rounded-full ${
-                scanning
-                  ? "bg-blue-500 animate-pulse"
-                  : barcodeDetected
-                  ? "bg-emerald-500"
-                  : "bg-gray-400"
-              }`}
-            ></div>
-            <span
-              className={`text-xs whitespace-nowrap font-medium ${
-                scanning
-                  ? "text-blue-400"
-                  : barcodeDetected
-                  ? "text-emerald-400"
-                  : "text-gray-400"
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm backdrop-blur-md"
+              style={{
+                backgroundColor: "var(--theme-cardBg)",
+                borderColor: barcodeDetected ? "rgba(16,185,129,0.4)" : scanning ? "rgba(59,130,246,0.4)" : "var(--theme-border)",
+              }}
             >
-              {scanning
-                ? t("scanning")
-                : barcodeDetected
-                ? t("detected")
-                : t("scannerReady")}
-            </span>
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${scanning
+                    ? "bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+                    : barcodeDetected
+                      ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                      : "bg-gray-400"
+                  }`}
+              ></div>
+              <span
+                className={`text-sm whitespace-nowrap font-bold ${scanning
+                    ? "text-blue-500"
+                    : barcodeDetected
+                      ? "text-emerald-500"
+                      : ""
+                  }`}
+                style={!scanning && !barcodeDetected ? { color: "#ffffff", opacity: 0.7 } : {}}
+              >
+                {scanning
+                  ? t("scanning")
+                  : barcodeDetected
+                    ? t("detected")
+                    : t("scannerReady")}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="relative mb-8">
+        {/* Scanner Illustration */}
+        <div className="relative w-36 h-36 mx-auto mb-4 cursor-pointer flex items-center justify-center group/scanner" onClick={onScan}>
           <div
-            className={`relative p-8 rounded-xl border transition-all duration-300 ${
-              barcodeDetected
-                ? "border-emerald-500/50"
+            className={`relative p-6 rounded-2xl border-2 transition-all duration-300 shadow-md ${barcodeDetected
+                ? "border-emerald-500 bg-emerald-50/10"
                 : scanning
-                ? "border-blue-500/50"
-                : "border-dashed"
-            }`}
-            style={{
-              backgroundColor:
-                barcodeDetected || scanning
-                  ? "rgba(0,0,0,0.1)"
-                  : "rgba(0,0,0,0.05)",
-              borderColor: barcodeDetected
-                ? "#10b981"
-                : scanning
-                ? "#3b82f6"
-                : "var(--theme-border)",
-            }}
-          >
-            {scanning && (
-              <div className="absolute inset-0 overflow-hidden rounded-xl">
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent animate-scan"></div>
-              </div>
-            )}
-
-            <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
-              <div
-                className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
-                  barcodeDetected
-                    ? "bg-emerald-500/10 animate-pulse"
-                    : scanning
-                    ? "bg-blue-500/10"
-                    : ""
-                }`}
-                style={
-                  !barcodeDetected && !scanning
-                    ? {
-                        backgroundColor: "rgba(0,0,0,0.05)",
-                        border: "1px solid var(--theme-border)",
-                      }
-                    : {}
-                }
-              ></div>
-              <img
-                src="https://img.icons8.com/color/144/barcode-scanner.png"
-                alt={t("scanIconAlt")}
-                className={`relative z-10 w-16 h-16 transition-all duration-300 filter ${
-                  scanning ? "brightness-125 scale-110" : "brightness-110"
-                }`}
-              />
-
-              {barcodeDetected && (
-                <div className="absolute -top-2 -right-2 z-20">
-                  <div className="bg-emerald-500 text-white p-2 rounded-full border border-emerald-400/30">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      ></path>
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex justify-center gap-1">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-                <div
-                  key={i}
-                  className={`h-8 transition-all duration-300 ${
-                    scanning ? "animate-pulse" : ""
-                  }`}
-                  style={{
-                    width: `${Math.random() * 16 + 8}px`,
-                    backgroundColor: scanning ? "#3b82f6" : "var(--theme-border)",
-                    opacity: scanning ? 0.7 : 0.4,
-                    borderRadius: "4px",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 text-center">
-            <h3
-              className={`text-lg font-semibold mb-2 transition-colors ${
-                barcodeDetected
-                  ? "text-emerald-400"
-                  : scanning
-                  ? "text-blue-400"
-                  : ""
+                  ? "border-blue-500 bg-blue-50/10"
+                  : "border-dashed hover:border-blue-400"
               }`}
-              style={!barcodeDetected && !scanning ? { color: "var(--theme-font)" } : {}}
-            >
-              {barcodeDetected
-                ? t("boardingPassDetected")
-                : scanning
-                ? t("scanningInProgress")
-                : t("readyToScan")}
-            </h3>
-            <p className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
-              {barcodeDetected
-                ? t("processingFlightInfo")
-                : t("holdPass")}
-            </p>
+            style={!barcodeDetected && !scanning ? { backgroundColor: "transparent", borderColor: "var(--theme-border)" } : {}}
+          >
+            <div className="relative mx-auto w-12 h-12 flex items-center justify-center">
+              <img
+                src="https://img.icons8.com/color/256/barcode-scanner.png"
+                alt={t("scanIconAlt") || "Scanner Icon"}
+                className={`relative z-10 w-12 h-12 object-contain transition-all duration-300 ${scanning ? "brightness-110" : barcodeDetected ? "brightness-100" : "opacity-80 grayscale-[0.2]"
+                  }`}
+              />
+            </div>
           </div>
+        </div>
+
+        <div className="mt-2 text-center ">
+          <p className="text-lg font-medium text-white opacity-80">
+            {barcodeDetected
+              ? t("processingFlightInfo") || "Processing flight info..."
+              : t("holdPass")}
+          </p>
         </div>
 
         <button
           onClick={onShowInstructions}
-          className="mt-4 text-sm font-medium flex items-center gap-2 mx-auto hover:opacity-80 transition-opacity"
-          style={{ color: "var(--theme-font)", opacity: 0.8 }}
+          className="mt-6 px-6 py-3.5 rounded-2xl text-md font-bold flex items-center justify-center w-fit gap-2 transition-colors border shadow-sm hover:shadow-md"
+          style={{
+            color: "#ffffff",
+            backgroundColor: "var(--theme-border)",
+            borderColor: "var(--theme-border)"
+          }}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+          <svg className="w-6 h-6 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {t("howToScanProperly")}
         </button>

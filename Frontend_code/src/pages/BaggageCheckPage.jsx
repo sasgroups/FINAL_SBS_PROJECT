@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Timmer from "../components/Timmer";
+import Timmer from "../components/Timer";
 import { useTranslation } from "react-i18next";
 import AdBanner from "./AdBanner";
 import Language from "../components/Language";
@@ -25,6 +25,9 @@ export default function BaggageCheckPage() {
   const [noBagTimeout, setNoBagTimeout] = useState(false);
   const [weightStable, setWeightStable] = useState(false);
   const { airline = "", flightType = "", origin, destination } = baggageData;
+
+
+
   const [limits, setLimits] = useState(() => {
     if (baggageData?.maxWeight && baggageData?.maxVolume) {
       return { maxWeight: baggageData.maxWeight, maxVolume: baggageData.maxVolume };

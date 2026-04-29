@@ -10,7 +10,7 @@ import LoadingOverlay from "../components/Homepagecomponents/LoadingOverlay";
 import ScannerSection from "../components/Homepagecomponents/ScannerSection";
 import ManualEntrySection from "../components/Homepagecomponents/ManualEntrySection";
 import InstructionsModal from "../components/Homepagecomponents/InstructionsModal";
-import Timmer from "../components/Timmer";
+import Timmer from "../components/Timer.jsx";
 import AssistanceFooter from "../components/Homepagecomponents/AssistanceFooter";
 import AirportHeader from "../components/Homepagecomponents/AirportHeader";
 import BackgroundElements from "../components/Homepagecomponents/BackgroundElements";
@@ -25,7 +25,7 @@ const socket = io(API_URL2, { transports: ['websocket'] });
 
 const HomePage = () => {
   const [flights, setFlights] = useState([]);
-  
+
   const [selectedAirline, setSelectedAirline] = useState("");
   const [selectedFlightType, setSelectedFlightType] = useState("");
   const [loadingFlight, setLoadingFlight] = useState(null);
@@ -290,27 +290,27 @@ const HomePage = () => {
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden"
+      className="h-screen flex flex-col relative overflow-hidden text-white"
       style={{
         ...styles.pageContainer,
         backgroundColor: "var(--theme-bg)",
-        color: "var(--theme-font)",
+        color: "#ffffff",
       }}
     >
       <BackgroundElements />
 
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[55vh] bg-black overflow-hidden">
+      <div className="h-[45vh] bg-black overflow-hidden">
         <AdBanner />
       </div>
 
       <Timmer />
 
       <div
-        className="h-[45vh] flex flex-col overflow-hidden"
+        className="h-[55vh] flex flex-col overflow-hidden"
         style={{
           backgroundColor: "var(--theme-cardBg)",
-          color: "var(--theme-font)",
+          color: "#ffffff",
         }}
       >
         <AirportHeader />
@@ -318,19 +318,25 @@ const HomePage = () => {
           <div className="max-w-6xl mx-auto">
             {!socketConnected && (
               <div className="text-yellow-400 text-sm mb-2"
-                      style={{
-    
-          color: "var(--theme-fontnew)",
-        }}></div>
+                style={{
+
+                  color: "#ffffff",
+                }}></div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="flex flex-col gap-8 mb-8">
               <ScannerSection
                 scanning={scanning}
                 barcodeDetected={barcodeDetected}
                 onScan={handleScanButton}
                 onShowInstructions={() => setShowInstructions(!showInstructions)}
               />
+
+              <div className="flex items-center justify-center w-full px-2">
+                <div className="h-px bg-white/30 flex-1"></div>
+                <span className="px-6 text-white/60 font-bold tracking-widest text-lg">{t("or") || "OR"}</span>
+                <div className="h-px bg-white/30 flex-1"></div>
+              </div>
 
               <ManualEntrySection
                 flights={flights}
@@ -357,14 +363,14 @@ const HomePage = () => {
             className="rounded-lg p-6 max-w-md mx-4 shadow-xl transform transition-all"
             style={{
               backgroundColor: "var(--theme-cardBg)",
-              color: "var(--theme-font)",
+              color: "#ffffff",
             }}
           >
             <div className="flex justify-between items-start">
               <h3 className="text-lg font-semibold">Flight Details</h3>
               <button
                 onClick={() => setErrorModal(null)}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                className="text-gray-400 hover:text-white focus:outline-none"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -372,15 +378,15 @@ const HomePage = () => {
               </button>
             </div>
             <div className="mt-2">
-              <p className="text-sm">{errorModal.message}</p>
+              <p className="text-sm text-white">{errorModal.message}</p>
             </div>
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setErrorModal(null)}
-                className="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
                 style={{
                   backgroundColor: "var(--theme-border)",
-                  color: "var(--theme-font)",
+                  color: "#ffffff",
                 }}
               >
                 OK
@@ -464,7 +470,7 @@ const styles = {
     /* Selection color */
     ::selection {
       background-color: ${designTokens.primary[500]}40;
-      color: ${designTokens.neutral[900]};
+      color: #ffffff;
     }
   `,
 };
