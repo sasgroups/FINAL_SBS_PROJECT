@@ -300,53 +300,65 @@ const HomePage = () => {
       <BackgroundElements />
 
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[45vh] bg-black overflow-hidden">
+      <div className="h-[55vh] shrink-0 bg-black overflow-hidden relative">
         <AdBanner />
       </div>
 
       <Timmer />
 
       <div
-        className="h-[55vh] flex flex-col overflow-hidden"
+        className="h-[45vh] flex shrink-0 flex-col overflow-hidden"
         style={{
           backgroundColor: "var(--theme-cardBg)",
           color: "#ffffff",
         }}
       >
         <AirportHeader />
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-2">
           <div className="max-w-6xl mx-auto">
             {!socketConnected && (
-              <div className="text-yellow-400 text-sm mb-2"
+              <div className="text-yellow-400 text-sm mb-1"
                 style={{
 
                   color: "#ffffff",
                 }}></div>
             )}
 
-            <div className="flex flex-col gap-8 mb-8">
-              <ScannerSection
-                scanning={scanning}
-                barcodeDetected={barcodeDetected}
-                onScan={handleScanButton}
-                onShowInstructions={() => setShowInstructions(!showInstructions)}
-              />
-
-              <div className="flex items-center justify-center w-full px-2">
-                <div className="h-px bg-white/30 flex-1"></div>
-                <span className="px-6 text-white/60 font-bold tracking-widest text-lg">{t("or") || "OR"}</span>
-                <div className="h-px bg-white/30 flex-1"></div>
+            <div className="flex flex-col md:flex-row items-stretch gap-6 mb-4">
+              <div className="flex-1 min-w-0">
+                <ScannerSection
+                  scanning={scanning}
+                  barcodeDetected={barcodeDetected}
+                  onScan={handleScanButton}
+                  onShowInstructions={() => setShowInstructions(!showInstructions)}
+                />
               </div>
 
-              <ManualEntrySection
-                flights={flights}
-                selectedAirline={selectedAirline}
-                setSelectedAirline={setSelectedAirline}
-                selectedFlightType={selectedFlightType}
-                setSelectedFlightType={setSelectedFlightType}
-                onManualEntry={handleManualEntry}
-                t={t}
-              />
+              {/* Desktop Vertical Divider */}
+              <div className="hidden md:flex flex-col items-center justify-center px-2">
+                <div className="w-px bg-white/20 flex-1"></div>
+                <span className="py-6 text-white/40 font-bold tracking-widest text-sm">{t("or") || "OR"}</span>
+                <div className="w-px bg-white/20 flex-1"></div>
+              </div>
+
+              {/* Mobile Horizontal Divider */}
+              <div className="flex md:hidden items-center justify-center w-full px-2 py-4">
+                <div className="h-px bg-white/20 flex-1"></div>
+                <span className="px-4 text-white/40 font-bold tracking-widest text-sm">{t("or") || "OR"}</span>
+                <div className="h-px bg-white/20 flex-1"></div>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <ManualEntrySection
+                  flights={flights}
+                  selectedAirline={selectedAirline}
+                  setSelectedAirline={setSelectedAirline}
+                  selectedFlightType={selectedFlightType}
+                  setSelectedFlightType={setSelectedFlightType}
+                  onManualEntry={handleManualEntry}
+                  t={t}
+                />
+              </div>
             </div>
 
             {showInstructions && <InstructionsModal onClose={() => setShowInstructions(false)} />}
