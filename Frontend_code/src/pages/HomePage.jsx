@@ -290,37 +290,36 @@ const HomePage = () => {
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden text-white"
+      className="h-screen flex flex-col relative overflow-hidden"
       style={{
         ...styles.pageContainer,
         backgroundColor: "var(--theme-bg)",
-        color: "#ffffff",
+        color: "var(--theme-font)",
       }}
     >
       <BackgroundElements />
 
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[55vh] shrink-0 bg-black overflow-hidden relative">
+      <div className="h-[55vh] shrink-0 overflow-hidden relative" style={{ backgroundColor: "var(--theme-cardBg)" }}>
         <AdBanner />
       </div>
 
       <Timmer />
 
       <div
-        className="h-[45vh] flex shrink-0 flex-col overflow-hidden"
+        className="h-[45vh] flex shrink-0 flex-col  overflow-hidden"
         style={{
           backgroundColor: "var(--theme-cardBg)",
-          color: "#ffffff",
+          color: "var(--theme-font)",
         }}
       >
         <AirportHeader />
-        <div className="flex-1 overflow-y-auto px-6 py-2">
-          <div className="max-w-6xl mx-auto">
+        <div className="flex-1 overflow-y-auto  px-6 py-2">
+          <div className="max-w-[1100px] mx-auto flex flex-col items-between gap-10">
             {!socketConnected && (
-              <div className="text-yellow-400 text-sm mb-1"
+              <div className="text-sm mb-1"
                 style={{
-
-                  color: "#ffffff",
+                  color: "var(--theme-fontnew)",
                 }}></div>
             )}
 
@@ -333,7 +332,6 @@ const HomePage = () => {
                   onShowInstructions={() => setShowInstructions(!showInstructions)}
                 />
               </div>
-
               {/* Desktop Vertical Divider */}
               <div className="hidden md:flex flex-col items-center justify-center px-2">
                 <div className="w-px bg-white/20 flex-1"></div>
@@ -375,7 +373,7 @@ const HomePage = () => {
             className="rounded-lg p-6 max-w-md mx-4 shadow-xl transform transition-all"
             style={{
               backgroundColor: "var(--theme-cardBg)",
-              color: "#ffffff",
+              color: "var(--theme-font)",
             }}
           >
             <div className="flex justify-between items-start">
@@ -395,10 +393,10 @@ const HomePage = () => {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setErrorModal(null)}
-                className="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                className="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{
                   backgroundColor: "var(--theme-border)",
-                  color: "#ffffff",
+                  color: "var(--theme-font)",
                 }}
               >
                 OK

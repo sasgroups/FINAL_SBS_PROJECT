@@ -5,6 +5,55 @@ import { useTranslation } from "react-i18next";
 import AdBanner from "./AdBanner";
 import Language from "../components/Language";
 
+const AnimatedNumber = ({ value, decimals = 0, duration = 800 }) => {
+  const numericValue = parseFloat(value) || 0;
+  const [displayValue, setDisplayValue] = useState(0);
+  const prevValueRef = React.useRef(0);
+
+  useEffect(() => {
+    const startValue = prevValueRef.current;
+    if (startValue === numericValue) return;
+
+    let startTimestamp = null;
+    let animationFrame;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      
+      const current = startValue + (numericValue - startValue) * easeProgress;
+      setDisplayValue(current);
+      
+      if (progress < 1) {
+        animationFrame = window.requestAnimationFrame(step);
+      } else {
+        setDisplayValue(numericValue);
+        prevValueRef.current = numericValue;
+      }
+    };
+    animationFrame = window.requestAnimationFrame(step);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [numericValue, duration]);
+
+  return <>{displayValue.toFixed(decimals)}</>;
+};
+
+const CalculatingNumbers = ({ length = 2 }) => {
+  const [val, setVal] = useState("0".repeat(length));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      let str = "";
+      for (let i = 0; i < length; i++) {
+        str += Math.floor(Math.random() * 10).toString();
+      }
+      setVal(str);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [length]);
+
+  return <>{val}</>;
+};
+
 const API_URL = process.env.REACT_APP_API_URL;
 const API_URL2 = process.env.REACT_APP_API_URL_KIOSK;
 const API_URL3 = process.env.REACT_APP_API_URL_Camera;
@@ -24,6 +73,7 @@ export default function BaggageCheckPage() {
   const [objectDetected, setObjectDetected] = useState(false);
   const [noBagTimeout, setNoBagTimeout] = useState(false);
   const [weightStable, setWeightStable] = useState(false);
+  const [hardwareError, setHardwareError] = useState(false);
   const { airline = "", flightType = "", origin, destination } = baggageData;
 
 
@@ -102,18 +152,20 @@ export default function BaggageCheckPage() {
   useEffect(() => {
     let stableCount = 0;
     let previousWeight = 0;
+    let errorCount = 0;
 
     const fetchWeight = async () => {
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), 900); // Prevent overlapping 1s intervals
       try {
-        const res = await fetch(`${API_URL2}/api/weight`, { signal: abortController.signal });
+        const res = await fetch(`${API_URL2}/api/weight?t=${Date.now()}`, { signal: abortController.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error("Fetch failed");
         
         const data = await res.json();
+        errorCount = 0; // reset on success
         if (data?.weight !== undefined) {
-          const newWeight = data.weight;
+          const newWeight = parseFloat(data.weight) || 0;
           setCurrentWeight(newWeight);
 
           if (Math.abs(newWeight - previousWeight) < 0.1) {
@@ -128,7 +180,12 @@ export default function BaggageCheckPage() {
           previousWeight = newWeight;
         }
       } catch (err) {
-        // Silent catch unless relevant, prevents log spamming
+        errorCount++;
+        if (errorCount >= 2) {
+          setCurrentWeight(0);
+          setWeightStable(false);
+          setHardwareError(true);
+        }
       }
     };
 
@@ -140,15 +197,17 @@ export default function BaggageCheckPage() {
   // Fetch object/dimensions every 5s
   useEffect(() => {
     let timeoutId;
+    let errorCount = 0;
 
     const fetchObject = async () => {
       const abortController = new AbortController();
       const timeoutIdFetch = setTimeout(() => abortController.abort(), 4500);
       try {
-        const res = await fetch(`${API_URL3}/api/detection`, { signal: abortController.signal });
+        const res = await fetch(`${API_URL3}/api/detection?t=${Date.now()}`, { signal: abortController.signal });
         clearTimeout(timeoutIdFetch);
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
+        errorCount = 0;
         
         if (data?.detected && weightStable && currentWeight > 0.1) {
           clearTimeout(timeoutId);
@@ -169,7 +228,10 @@ export default function BaggageCheckPage() {
           timeoutId = setTimeout(() => setNoBagTimeout(true), 1500);
         }
       } catch (err) {
-        // Silent catch
+        errorCount++;
+        if (errorCount >= 1) {
+          setHardwareError(true);
+        }
       }
     };
 
@@ -311,9 +373,31 @@ export default function BaggageCheckPage() {
   // Main UI
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col relative"
       style={{ backgroundColor: "var(--theme-bg)" }}
     >
+      {hardwareError && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="rounded-2xl p-10 shadow-2xl max-w-lg text-center transform transition-all scale-100" style={{ backgroundColor: 'var(--theme-cardBg)', border: '1px solid var(--theme-border)'}}>
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-100/20 mb-6 border border-red-500/30">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <h2 className="text-3xl font-bold mb-4 text-red-500">
+              {t("System Error") || "System Error"}
+            </h2>
+            <p className="text-xl mb-8" style={{ color: 'var(--theme-font)'}}>
+              {t("There is a problem with the kiosk. Please contact airline staff for assistance.") || "There is a problem with the kiosk. Please contact airline staff for assistance."}
+            </p>
+            <button
+              className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-lg font-semibold transition-colors w-full shadow-lg"
+              onClick={() => navigate('/ad_player')}
+            >
+              {t("goBack") || "Go Back"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Ad */}
       <div style={{ height: "50vh" }}>
         <AdBanner height="100%" />
@@ -360,39 +444,8 @@ export default function BaggageCheckPage() {
                 </p>
               </div>
             </div>
-          ) : isLoadingVolume ? (
-            /* ----- Weight detected, waiting for volume ----- */
-            <div
-              className="flex flex-col items-center justify-center gap-6 py-20 rounded-xl"
-              style={{
-                backgroundColor: "rgba(0, 0, 0, 0.05)",
-                border: `1px solid var(--theme-border)`,
-              }}
-            >
-              <div
-                className="animate-spin rounded-full h-16 w-16 border-4 border-t-transparent"
-                style={{ borderColor: "var(--theme-border)", borderTopColor: "transparent" }}
-              ></div>
-              <p className="text-2xl" style={{ color: "var(--theme-font)" }}>
-                {t("Measuring baggage size...")}
-              </p>
-              <p className="text-lg" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
-                {t("Please wait a moment")}
-              </p>
-              <div
-                className="mt-2 p-3 rounded-lg"
-                style={{ backgroundColor: "rgba(0, 0, 0, 0.1)" }}
-              >
-                <p className="text-sm" style={{ color: "var(--theme-font)" }}>
-                  {t("Weight")}:{" "}
-                  <span style={{ fontWeight: "bold", color: "var(--theme-font)" }}>
-                    {currentWeight.toFixed(2)} kg
-                  </span>
-                </p>
-              </div>
-            </div>
           ) : (
-            /* ----- Both weight and volume available ----- */
+            /* ----- Measurement Layout ----- */
             <>
               <div className="mb-2">
                 <h1 className="text-3xl font-bold" style={{ color: "var(--theme-font)" }}>
@@ -442,8 +495,8 @@ export default function BaggageCheckPage() {
                   <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
                     {t("weight")}
                   </h2>
-                  <p className="text-7xl font-dsdigital" style={{ color: "var(--theme-font)" }}>
-                    {currentWeight > 0 ? currentWeight.toFixed(2) : "--"}{" "}
+                  <p className="text-7xl font-dsdigital" style={{ color: statusColors[weightStatus].text }}>
+                    {currentWeight > 0 ? <AnimatedNumber value={currentWeight} decimals={2} /> : "--"}{" "}
                     <span className="text-2xl ml-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                       {t("kg")}
                     </span>
@@ -501,8 +554,8 @@ export default function BaggageCheckPage() {
                   <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
                     {t("Total Size (L+W+H)")}
                   </h2>
-                  <p className="text-7xl font-dsdigital tracking-widest" style={{ color: "var(--theme-font)" }}>
-                    {volume > 0 ? volume : "--"}{" "}
+                  <p className="text-7xl font-dsdigital tracking-widest" style={{ color: isLoadingVolume ? "var(--theme-font)" : statusColors[volumeStatus].text }}>
+                    {isLoadingVolume ? <CalculatingNumbers length={3} /> : volume > 0 ? <AnimatedNumber value={volume} decimals={0} /> : "--"}{" "}
                     <span className="text-2xl ml-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                       cm
                     </span>
@@ -525,10 +578,12 @@ export default function BaggageCheckPage() {
                     >
                       <p
                         className="text-lg font-semibold flex items-center gap-2"
-                        style={{ color: statusColors[volumeStatus].text }}
+                        style={{ color: isLoadingVolume ? "var(--theme-font)" : statusColors[volumeStatus].text }}
                       >
-                        <span>{statusColors[volumeStatus].icon}</span>
-                        {volumeStatus === "gray"
+                        <span>{isLoadingVolume ? "⏳" : statusColors[volumeStatus].icon}</span>
+                        {isLoadingVolume 
+                          ? t("Measuring...") 
+                          : volumeStatus === "gray"
                           ? t("noBaggage")
                           : volumeStatus === "green"
                           ? t("withinLimit")
@@ -554,7 +609,7 @@ export default function BaggageCheckPage() {
                     {t("Length")}
                   </p>
                   <p className="text-4xl font-dsdigital" style={{ color: "var(--theme-font)" }}>
-                    {dimensions.length > 0 ? dimensions.length : "--"}
+                    {isLoadingVolume ? <CalculatingNumbers length={2} /> : dimensions.length > 0 ? <AnimatedNumber value={dimensions.length} decimals={0} /> : "--"}
                   </p>
                   <span className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
                     cm
@@ -571,7 +626,7 @@ export default function BaggageCheckPage() {
                     {t("Width")}
                   </p>
                   <p className="text-4xl font-dsdigital" style={{ color: "var(--theme-font)" }}>
-                    {dimensions.width > 0 ? dimensions.width : "--"}
+                    {isLoadingVolume ? <CalculatingNumbers length={2} /> : dimensions.width > 0 ? <AnimatedNumber value={dimensions.width} decimals={0} /> : "--"}
                   </p>
                   <span className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
                     cm
@@ -588,7 +643,7 @@ export default function BaggageCheckPage() {
                     {t("Height")}
                   </p>
                   <p className="text-4xl font-dsdigital" style={{ color: "var(--theme-font)" }}>
-                    {dimensions.height > 0 ? dimensions.height : "--"}
+                    {isLoadingVolume ? <CalculatingNumbers length={2} /> : dimensions.height > 0 ? <AnimatedNumber value={dimensions.height} decimals={0} /> : "--"}
                   </p>
                   <span className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
                     cm

@@ -161,10 +161,10 @@ const TimerModal = () => {
             <div className="flex justify-between gap-6">
               <button
                 onClick={handleContinue}
-                className="text-xl px-14 py-5 rounded-md shadow-md transition-colors"
+                className="text-xl w-[30%] px-2 py-2 rounded-md shadow-md transition-colors"
                 style={{
-                  backgroundColor: 'var(--theme-bg)',
-                  border: `1px solid var(--theme-border)`,
+                  backgroundColor: 'var(--theme-border)',
+                  border: `1px solid var(--theme-font)`,
                   color: 'var(--theme-font)',
                 }}
               >
@@ -172,10 +172,10 @@ const TimerModal = () => {
               </button>
               <button
                 onClick={handleCancel}
-                className="text-xl px-14 py-5 rounded-md shadow-md transition-colors"
+                className="text-xl w-[30%] px-2 py-2 rounded-md shadow-md transition-colors"
                 style={{
-                  backgroundColor: 'var(--theme-bg)',
-                  border: `1px solid var(--theme-border)`,
+                  backgroundColor: 'var(--theme-border)',
+                  border: `1px solid var(--theme-font)`,
                   color: 'var(--theme-font)',
                 }}
               >

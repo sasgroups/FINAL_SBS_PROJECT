@@ -44,7 +44,7 @@ const ManualEntrySection = ({
     >
       <div
         className="relative rounded-[23px] p-6 h-full flex flex-col w-full"
-        style={{ backgroundColor: "#1e293b" }}
+        style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
         {/* ── Header ── */}
         <div
@@ -56,7 +56,7 @@ const ManualEntrySection = ({
             style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
           >
             <svg
-              className="w-7 h-7 text-white"
+              className="w-6 h-6 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -70,7 +70,7 @@ const ManualEntrySection = ({
             </svg>
           </div>
           <div>
-            <h2 className="text-xl font-extrabold text-white drop-shadow-sm leading-tight">
+            <h2 className="text-xl font-bold text-white drop-shadow-sm leading-tight">
               {t("manualEntry")}
             </h2>
             <p className="text-xs mt-0.5 font-medium text-white opacity-50">
@@ -85,7 +85,7 @@ const ManualEntrySection = ({
           {/* ── Airline Dropdown ── */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between pl-1">
-              <label className="text-xs font-bold uppercase tracking-widest text-white opacity-60 flex items-center gap-2">
+              <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
                 <span
                   className="w-1.5 h-1.5 rounded-full bg-white opacity-70"
                 />
@@ -115,12 +115,13 @@ const ManualEntrySection = ({
                 onClick={() => setDropdownOpen((o) => !o)}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-200 outline-none font-semibold text-sm cursor-pointer text-left"
                 style={{
-                  color: selectedAirline ? "#ffffff" : "rgba(255,255,255,0.4)",
+                  color: "var(--theme-font)",
+                  opacity: selectedAirline ? 1 : 0.6,
                   backgroundColor: selectedAirline
-                    ? "rgba(255,255,255,0.1)"
+                    ? "var(--theme-bg)"
                     : "rgba(255,255,255,0.04)",
                   borderColor: selectedAirline
-                    ? "rgba(255,255,255,0.3)"
+                    ? "var(--theme-border)"
                     : "rgba(255,255,255,0.1)",
                 }}
               >
@@ -140,8 +141,8 @@ const ManualEntrySection = ({
                 <div
                   className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
                   style={{
-                    background: "#0f172a",
-                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "var(--theme-cardBg)",
+                    border: "1px solid var(--theme-border)",
                     boxShadow: "0 20px 40px rgba(0,0,0,0.7)",
                     maxHeight: 200,
                     overflowY: "auto",
@@ -159,17 +160,15 @@ const ManualEntrySection = ({
                         onClick={() => selectAirline(airline)}
                         className="w-full text-left px-4 py-3 text-sm font-medium transition-colors duration-100 flex items-center gap-3"
                         style={{
-                          color:
-                            selectedAirline === airline
-                              ? "#ffffff"
-                              : "rgba(255,255,255,0.75)",
+                          color: "var(--theme-font)",
+                          opacity: selectedAirline === airline ? 1 : 0.75,
                           backgroundColor:
                             selectedAirline === airline
-                              ? "rgba(255,255,255,0.1)"
+                              ? "var(--theme-border)"
                               : "transparent",
                           borderBottom:
                             idx < airlines.length - 1
-                              ? "1px solid rgba(255,255,255,0.05)"
+                              ? "1px solid var(--theme-border)"
                               : "none",
                         }}
                         onMouseEnter={(e) => {
@@ -213,7 +212,7 @@ const ManualEntrySection = ({
 
           {/* ── Flight Type ── */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-white opacity-60 flex items-center gap-2 pl-1">
+            <label className="text-[13px] font-bold uppercase tracking-widest text-white  flex items-center gap-2 pl-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white opacity-70" />
               {t("flightType")}
             </label>
@@ -230,11 +229,14 @@ const ManualEntrySection = ({
                     className="relative p-4 rounded-2xl border transition-all duration-200 flex flex-col items-center justify-center gap-1.5"
                     style={{
                       borderColor: active
-                        ? "rgba(255,255,255,0.35)"
-                        : "rgba(255,255,255,0.08)",
+                        ? "var(--theme-font)"
+                        : "var(--theme-border)",
                       background: active
-                        ? "rgba(255,255,255,0.12)"
+                        ? "var(--theme-bg)"
                         : "rgba(255,255,255,0.03)",
+                      boxShadow: active
+                        ? "0 0 8px rgba(255,255,255,0.15)"
+                        : "none",
                     }}
                   >
                     <span className="text-3xl">{type.icon}</span>
@@ -242,7 +244,8 @@ const ManualEntrySection = ({
                       <span
                         className="block font-bold text-sm"
                         style={{
-                          color: active ? "#ffffff" : "rgba(255,255,255,0.75)",
+                          color: "var(--theme-font)",
+                          opacity: active ? 1 : 0.75,
                         }}
                       >
                         {t(type.labelKey)}
@@ -261,22 +264,23 @@ const ManualEntrySection = ({
           </div>
 
           {/* ── Continue Button ── */}
-          <button
+        <div className="flex items-center justify-center width-full" ><button
             onClick={onManualEntry}
             disabled={!isReady}
-            className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 border"
+            className="w-fit px-8 py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 border"
             style={
               isReady
                 ? {
-                    background: "rgba(255,255,255,0.15)",
-                    borderColor: "rgba(255,255,255,0.3)",
-                    color: "#ffffff",
-                    boxShadow: "0 0 20px rgba(255,255,255,0.08)",
+                    backgroundColor: "var(--theme-font)",
+                    borderColor: "var(--theme-font)",
+                    color: "var(--theme-bg)",
+                    boxShadow: "0 4px 14px rgba(255,255,255,0.15)",
                   }
                 : {
-                    backgroundColor: "rgba(255,255,255,0.04)",
-                    borderColor: "rgba(255,255,255,0.06)",
-                    color: "rgba(255,255,255,0.3)",
+                    backgroundColor: "var(--theme-border)",
+                    borderColor: "var(--theme-border)",
+                    color: "var(--theme-font)",
+                    opacity: 0.4,
                     cursor: "not-allowed",
                   }
             }
@@ -320,6 +324,7 @@ const ManualEntrySection = ({
         </div>
       </div>
     </div>
+    </div> 
   );
 };
 

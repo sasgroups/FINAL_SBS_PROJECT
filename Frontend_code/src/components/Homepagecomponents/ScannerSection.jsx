@@ -76,34 +76,41 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
           transition: "background 0.6s ease",
         }}
       >
-        <div
-          className="relative rounded-[23px] p-6 h-full flex flex-col items-center justify-center text-center w-full gap-4"
-          style={{
-            backgroundColor: "#1e293b",
-          }}
-        >
+      <div
+        className="relative rounded-[23px] p-6 h-full flex flex-col w-full justify-between "
+        style={{ backgroundColor: "var(--theme-cardBg)" }}
+      >
           {/* ── Header ── */}
-          <div className="flex flex-col items-center w-full">
-            <div
-              className="p-3 rounded-2xl flex items-center justify-center mb-3"
-              style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-            >
-              <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div
+          className="flex items-center gap-3 mb-5 pb-4 border-b"
+          style={{ borderColor: "rgba(255,255,255,0.08)" }}
+        >
+             <div className="flex items-center gap-2">
+              <div
+            className="p-3 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          >
+            
+              <svg className="w-6 h-6" style={{ color: "var(--theme-font)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   d="M4 7V5a1 1 0 011-1h2M4 17v2a1 1 0 001 1h2M20 7V5a1 1 0 00-1-1h-2M20 17v2a1 1 0 01-1 1h-2M7 12h10M7 16h6M7 8h4" />
               </svg>
             </div>
-            <h2 className="text-2xl font-extrabold text-white mb-1 drop-shadow-sm">
+            <div className="flex flex-col items-start">
+            <h2 className="text-xl font-bold drop-shadow-sm leading-tight" style={{ color: "var(--theme-font)" }}>
               {t("scanBoardingPass")}
-            </h2>
-            <p className="text-xs font-medium text-white opacity-70">
+            </h2> 
+            <p className="text-xs font-medium opacity-70" style={{ color: "var(--theme-font)" }}>
               {t("fastestMethod")} • {t("seconds", { seconds: 30 })}
             </p>
           </div>
+             </div>
+             </div>
 
           {/* ── Scanner Viewport ── */}
+          <div className="flex items-center justify-center">
           <div
-            className="relative cursor-pointer select-none flex-shrink-0"
+            className="relative cursor-pointer select-none flex-shrink-0 "
             style={{ width: 164, height: 164 }}
             onClick={onScan}
           >
@@ -115,7 +122,6 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
                 borderRadius: 26,
               }}
             />
-
             {/* Success ripple burst */}
             {barcodeDetected && (
               <div
@@ -155,9 +161,9 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
                     ? "success-pop text-emerald-400"
                     : scanning
                     ? "text-blue-300 opacity-90"
-                    : "text-white opacity-60"
+                    : "opacity-60"
                 }`}
-                style={{ width: 64, height: 48 }}
+                style={{ width: 64, height: 48, color: !barcodeDetected && !scanning ? "var(--theme-font)" : undefined }}
               />
             </div>
 
@@ -205,31 +211,34 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
               </div>
             ))}
           </div>
+          </div>
 
           {/* Status text */}
-          <p className="text-base font-semibold text-white opacity-90 text-center leading-snug">
+          <p className="text-base font-semibold opacity-90 text-center leading-snug" style={{ color: "var(--theme-font)" }}>
             {barcodeDetected
               ? t("processingFlightInfo") || "Processing flight info…"
               : t("holdPass")}
           </p>
 
           {/* How-to button */}
-          <button
+        <div className="flex items-center justify-center width-full" ><button
             onClick={onShowInstructions}
-            className="px-6 py-3 rounded-2xl text-sm font-bold flex items-center justify-center w-fit gap-2 transition-all border shadow-sm hover:brightness-110"
+            className="px-3 py-2 rounded-2xl text-[12px] font-bold flex items-center justify-center w-fit gap-2 transition-all border shadow-sm hover:brightness-110"
             style={{
-              color: "#ffffff",
-              backgroundColor: "var(--theme-border)",
-              borderColor: "var(--theme-border)",
-            }}
+                    background: "rgba(255,255,255,0.15)",
+                    borderColor: "rgba(255,255,255,0.3)",
+                    color: "var(--theme-font)",
+                    boxShadow: "0 0 20px rgba(255,255,255,0.08)",
+                  }}
           >
-            <svg className="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {t("howToScanProperly")}
           </button>
         </div>
+        </div> 
       </div>
     </>
   );
