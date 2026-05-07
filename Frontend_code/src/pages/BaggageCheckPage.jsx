@@ -373,8 +373,8 @@ export default function BaggageCheckPage() {
   // Main UI
   return (
     <div
-      className="min-h-screen flex flex-col relative"
-      style={{ backgroundColor: "var(--theme-bg)" }}
+      className="flex flex-col relative overflow-hidden"
+      style={{ height: "100dvh", width: "100vw", backgroundColor: "var(--theme-bg)" }}
     >
       {hardwareError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -399,12 +399,12 @@ export default function BaggageCheckPage() {
       )}
 
       {/* Top Ad */}
-      <div style={{ height: "50vh" }}>
+      <div style={{ height: "50dvh", flexShrink: 0 }}>
         <AdBanner height="100%" />
       </div>
 
       {/* Bottom Content */}
-      <div className="h-full overflow-y-auto px-4" style={{ height: "50vh" }}>
+      <div className="overflow-y-auto px-4" style={{ height: "50dvh", flexShrink: 0 }}>
         <Timmer />
         <div className="w-full">
           <Language />

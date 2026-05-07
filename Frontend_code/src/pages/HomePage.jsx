@@ -290,9 +290,11 @@ const HomePage = () => {
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden"
+      className="flex flex-col relative overflow-hidden"
       style={{
         ...styles.pageContainer,
+        height: "100dvh",
+        width: "100vw",
         backgroundColor: "var(--theme-bg)",
         color: "var(--theme-font)",
       }}
@@ -300,15 +302,16 @@ const HomePage = () => {
       <BackgroundElements />
 
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[55vh] shrink-0 overflow-hidden relative" style={{ backgroundColor: "var(--theme-cardBg)" }}>
+      <div className="shrink-0 overflow-hidden relative" style={{ height: "55dvh", backgroundColor: "var(--theme-cardBg)" }}>
         <AdBanner />
       </div>
 
       <Timmer />
 
       <div
-        className="h-[45vh] flex shrink-0 flex-col  overflow-hidden"
+        className="flex shrink-0 flex-col overflow-hidden"
         style={{
+          height: "45dvh",
           backgroundColor: "var(--theme-cardBg)",
           color: "var(--theme-font)",
         }}
