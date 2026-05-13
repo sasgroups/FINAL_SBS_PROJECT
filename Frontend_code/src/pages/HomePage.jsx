@@ -317,8 +317,9 @@ const HomePage = () => {
         }}
       >
         <AirportHeader />
+
         <div className="flex-1 overflow-y-auto  px-6 py-2">
-          <div className="max-w-[1100px] mx-auto flex flex-col items-between gap-10">
+          <div className="max-w-[1050px] mx-auto flex flex-col items-between gap-16">
             {!socketConnected && (
               <div className="text-sm mb-1"
                 style={{

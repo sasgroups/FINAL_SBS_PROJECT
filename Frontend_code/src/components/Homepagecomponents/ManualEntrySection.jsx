@@ -12,7 +12,40 @@ const ManualEntrySection = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  /* close when clicking outside */
+  // Drag to scroll state
+  const listRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [dragged, setDragged] = useState(false);
+
+  const handlePointerDown = (e) => {
+    if (!listRef.current) return;
+    setIsDragging(true);
+    setDragged(false);
+    setStartY(e.pageY);
+    setScrollTop(listRef.current.scrollTop);
+    listRef.current.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !listRef.current) return;
+    const y = e.pageY;
+    const walk = (y - startY) * 1.5;
+    if (Math.abs(walk) > 5) setDragged(true);
+    listRef.current.scrollTop = scrollTop - walk;
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    if (listRef.current && listRef.current.hasPointerCapture(e.pointerId)) {
+      listRef.current.releasePointerCapture(e.pointerId);
+    }
+  };
+
+
+
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -46,7 +79,7 @@ const ManualEntrySection = ({
         className="relative rounded-[23px] p-6 h-full flex flex-col w-full"
         style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
-        {/* ── Header ── */}
+        {/* Header */}
         <div
           className="flex items-center gap-3 mb-5 pb-4 border-b"
           style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -79,16 +112,13 @@ const ManualEntrySection = ({
           </div>
         </div>
 
-        {/* ── Body ── */}
+        {/* Body */}
         <div className="flex-grow flex flex-col justify-between gap-5">
-
-          {/* ── Airline Dropdown ── */}
+          {/* Airline Dropdown */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between pl-1">
               <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-white opacity-70"
-                />
+                <span className="w-1.5 h-1.5 rounded-full bg-white opacity-70" />
                 {t("selectAirline")}
               </label>
               {selectedAirline && (
@@ -109,7 +139,6 @@ const ManualEntrySection = ({
             </div>
 
             <div className="relative" ref={dropdownRef}>
-              {/* Trigger button */}
               <button
                 type="button"
                 onClick={() => setDropdownOpen((o) => !o)}
@@ -136,18 +165,49 @@ const ManualEntrySection = ({
                 </svg>
               </button>
 
-              {/* Dropdown panel */}
+              {/* Dropdown panel – single scroll container, thin scrollbar */}
               {dropdownOpen && (
                 <div
-                  className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
+                  ref={listRef}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  className="absolute left-0 right-0 mt-2 rounded-2xl z-50 cursor-grab active:cursor-grabbing"
                   style={{
                     background: "var(--theme-cardBg)",
                     border: "1px solid var(--theme-border)",
                     boxShadow: "0 20px 40px rgba(0,0,0,0.7)",
-                    maxHeight: 200,
+                    maxHeight: 220,
                     overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "contain",
+                    scrollbarWidth: "thin", // Firefox
+                    scrollbarColor: "rgba(255,255,255,0.4) rgba(255,255,255,0.1)",
+                    touchAction: "none",
                   }}
                 >
+                  {/* Thin scrollbar styling for WebKit (Chrome, Safari, Edge) */}
+                  <style>
+                    {`
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar {
+                        width: 4px;
+                        height: 4px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-track {
+                        background: rgba(255,255,255,0.08);
+                        border-radius: 10px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb {
+                        background: rgba(255,255,255,0.35);
+                        border-radius: 10px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb:hover {
+                        background: rgba(255,255,255,0.6);
+                      }
+                    `}
+                  </style>
+
                   {airlines.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-white opacity-40 text-center">
                       No airlines available
@@ -157,8 +217,15 @@ const ManualEntrySection = ({
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => selectAirline(airline)}
-                        className="w-full text-left px-4 py-3 text-sm font-medium transition-colors duration-100 flex items-center gap-3"
+                        onClick={(e) => {
+                          if (dragged) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                          }
+                          selectAirline(airline);
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium transition-colors duration-100 flex items-center gap-3 select-none"
                         style={{
                           color: "var(--theme-font)",
                           opacity: selectedAirline === airline ? 1 : 0.75,
@@ -210,9 +277,9 @@ const ManualEntrySection = ({
             </div>
           </div>
 
-          {/* ── Flight Type ── */}
+          {/* Flight Type */}
           <div className="flex flex-col gap-2">
-            <label className="text-[13px] font-bold uppercase tracking-widest text-white  flex items-center gap-2 pl-1">
+            <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2 pl-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white opacity-70" />
               {t("flightType")}
             </label>
@@ -263,68 +330,69 @@ const ManualEntrySection = ({
             </div>
           </div>
 
-          {/* ── Continue Button ── */}
-        <div className="flex items-center justify-center width-full" ><button
-            onClick={onManualEntry}
-            disabled={!isReady}
-            className="w-fit px-8 py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 border"
-            style={
-              isReady
-                ? {
-                    backgroundColor: "var(--theme-font)",
-                    borderColor: "var(--theme-font)",
-                    color: "var(--theme-bg)",
-                    boxShadow: "0 4px 14px rgba(255,255,255,0.15)",
-                  }
-                : {
-                    backgroundColor: "var(--theme-border)",
-                    borderColor: "var(--theme-border)",
-                    color: "var(--theme-font)",
-                    opacity: 0.4,
-                    cursor: "not-allowed",
-                  }
-            }
-          >
-            {isReady ? (
-              <>
-                <span>{t("continueToBaggageCheck")}</span>
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-4 h-4 opacity-30"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"
-                  />
-                </svg>
-                <span>{t("selectAirlineAndType")}</span>
-              </>
-            )}
-          </button>
+          {/* Continue Button */}
+          <div className="flex items-center justify-center width-full">
+            <button
+              onClick={onManualEntry}
+              disabled={!isReady}
+              className="w-fit px-8 py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 border"
+              style={
+                isReady
+                  ? {
+                      backgroundColor: "var(--theme-font)",
+                      borderColor: "var(--theme-font)",
+                      color: "var(--theme-bg)",
+                      boxShadow: "0 4px 14px rgba(255,255,255,0.15)",
+                    }
+                  : {
+                      backgroundColor: "var(--theme-border)",
+                      borderColor: "var(--theme-border)",
+                      color: "var(--theme-font)",
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                    }
+              }
+            >
+              {isReady ? (
+                <>
+                  <span>{t("continueToBaggageCheck")}</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4 opacity-30"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"
+                    />
+                  </svg>
+                  <span>{t("selectAirlineAndType")}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    </div> 
   );
 };
 
